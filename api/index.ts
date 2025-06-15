@@ -1,43 +1,33 @@
-require('dotenv').config();
+import express from 'express';
+import { config } from 'dotenv';
+import { ExpressLoader, MongooseLoader } from '../loaders';
+import { AppConfig } from '../config';
 
-const express = require('express');
+config();
+
 const app = express();
+const expressLoader = new ExpressLoader(app);
+const mongooseLoader = MongooseLoader.getInstance();
 
-const bodyParser = require('body-parser');
-const path = require('path');
+// Initialize the application
+async function init() {
+    try {
+        await mongooseLoader.connect();
+        await expressLoader.load();
+        console.log('Application initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        process.exit(1);
+    }
+}
 
-// Create application/x-www-form-urlencoded parser
-const urlencodedParser = bodyParser.urlencoded({ extended: false });
-
-app.use(express.static('public'));
-
-// Middleware
-app.use(express.json());
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-	res.json({ status: 'ok' });
-});
-
-// Test endpoint
-app.get('/api/test', (req, res) => {
-	res.json({ message: 'API is working!' });
-});
-
-// Users endpoint
-app.get('/api/users', (req, res) => {
-	const users = [
-		{ id: 1, name: 'John Doe', email: 'john@example.com' },
-		{ id: 2, name: 'Jane Smith', email: 'jane@example.com' }
-	];
-	res.json({ users });
-});
-
-// Export the Express API
-module.exports = app;
+// Initialize the application
+init();
 
 // Only start the server if we're not in a serverless environment
 if (process.env.NODE_ENV !== 'production') {
-	const port = process.env.PORT || 3000;
-	app.listen(port, () => console.log(`Server ready on port ${port}.`));
+    const port = process.env.PORT || AppConfig.PORT;
+    app.listen(port, () => console.log(`Server ready on port ${port}.`));
 }
+
+export default app;
